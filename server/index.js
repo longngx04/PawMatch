@@ -1,20 +1,22 @@
-const PORT = 5000
-const express = require('express');
+
+import express from 'express'
+import dotenv from 'dotenv'
+import authRoutes from './src/routes/auth.route.js'
+import {connectDB} from './src/lib/db.js'
+
+dotenv.config()
 
 const app = express()
+const PORT = process.env.PORT || 3000
 
-app.get('/', (req, res) => {
-    res.json({ message: 'Hello from PawMatch server!' });
-});
+app.use(express.json())
 
-app.get('/signup', (req, res) => {
-    res.json({ message: 'Signup endpoint' });
-});
+console.log(process.env.PORT)
 
-app.get('/login', (req, res) => {
-    res.json({ message: 'Login endpoint' });
-});
+app.use('/auth', authRoutes)
+
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    connectDB()
 });
