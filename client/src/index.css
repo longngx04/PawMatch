@@ -7,7 +7,75 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+<<<<<<< Updated upstream
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+=======
+@layer utilities {
+    .animate-gradient {
+        animation: gradient 3s ease infinite;
+    }
+
+    @keyframes gradient {
+
+        0%,
+        100% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+    }
+
+    .animate-shake {
+        animation: shake 0.5s ease;
+    }
+
+    @keyframes shake {
+
+        0%,
+        100% {
+            transform: translateX(0);
+        }
+
+        25% {
+            transform: translateX(-10px);
+        }
+
+        75% {
+            transform: translateX(10px);
+        }
+    }
+}
+
+/* Typing indicator animation */
+.typing-dots span {
+    animation: blink 1.4s infinite;
+    animation-fill-mode: both;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 0.2;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.2;
+    }
+}
+>>>>>>> Stashed changes

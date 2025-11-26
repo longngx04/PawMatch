@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.js"
+    "backend": "nodemon index.js"
   },
   "author": "",
   "type": "module",
@@ -20,6 +20,11 @@
     "mongodb": "^4.3.1",
     "mongoose": "^8.10.1",
     "nodemon": "^2.0.15",
+<<<<<<< Updated upstream
+=======
+    "resend": "^6.0.2",
+    "socket.io": "^4.8.1",
+>>>>>>> Stashed changes
     "uuid": "^8.3.2"
   }
 }
