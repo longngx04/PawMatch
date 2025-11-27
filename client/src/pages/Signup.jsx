@@ -40,6 +40,7 @@ const Signup = () => {
 
       if (response.status === 201) {
         localStorage.setItem('user', JSON.stringify(response.data));
+
         navigate('/main');
       }
     } catch (err) {

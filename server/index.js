@@ -10,17 +10,6 @@ import { initializeSocket } from './src/lib/socket.js';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
-<<<<<<< Updated upstream
-import express from 'express'
-import dotenv from 'dotenv'
-import authRoutes from './src/routes/auth.route.js'
-import {connectDB} from './src/lib/db.js'
-
-dotenv.config()
-
-const app = express()
-const PORT = process.env.PORT || 3000
-=======
 dotenv.config();
 
 const app = express();
@@ -46,7 +35,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/pets', petRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/users', userRoutes);
->>>>>>> Stashed changes
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

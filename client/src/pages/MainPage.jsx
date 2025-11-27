@@ -31,7 +31,7 @@ const MainPage = () => {
     // Fetch user's pets
     const fetchMyPets = async () => {
         try {
-            const response = await axios.get('http://localhost:3000/api/pets/my-pets', {
+            const response = await axios.get('http://localhost:3000/api/pets/user/pets', {
                 withCredentials: true
             });
             setMyPets(response.data);
@@ -51,7 +51,7 @@ const MainPage = () => {
     const fetchPetsToSwipe = async (petId) => {
         try {
             setLoading(true);
-            const response = await axios.get(`http://localhost:3000/api/pets/swipe-cards/${petId}`, {
+            const response = await axios.get(`http://localhost:3000/api/pets/swipe/${petId}`, {
                 withCredentials: true
             });
             setPetCards(response.data);

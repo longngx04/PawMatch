@@ -1,9 +1,9 @@
 import Message from '../models/messageModel.js';
 import Match from '../models/matchModel.js';
-import { emitNewMessageToRoom, emitNewMessage } from '../lib/socket.js';
+import { emitNewMessageToRoom } from '../lib/socket.js';
 
 /**
- * Send a message in a match
+ * Send a new message
  * POST /api/messages
  */
 export const sendMessage = async (req, res) => {
@@ -11,24 +11,38 @@ export const sendMessage = async (req, res) => {
     const { matchId, text, image } = req.body;
     const senderId = req.user._id;
 
-    if (!matchId || !text) {
-      return res.status(400).json({ message: 'Match ID and message text are required' });
+    console.log(' Send message request:', {
+      matchId,
+      senderId,
+      hasText: !!text,
+      hasImage: !!image
+    });
+
+    // Validation
+    if (!matchId) {
+      return res.status(400).json({ message: 'Match ID is required' });
     }
 
-    // Verify match exists and user is part of it
+    if (!text && !image) {
+      return res.status(400).json({ message: 'Message text or image is required' });
+    }
+
+    // Find and verify match
     const match = await Match.findById(matchId);
 
     if (!match) {
       return res.status(404).json({ message: 'Match not found' });
     }
 
+    // Verify user is part of this match
     if (match.owner1.toString() !== senderId.toString() &&
       match.owner2.toString() !== senderId.toString()) {
-      return res.status(403).json({ message: 'Not authorized to send messages in this match' });
+      return res.status(403).json({ message: 'You are not part of this match' });
     }
 
+    // Check match status
     if (match.status !== 'active') {
-      return res.status(400).json({ message: 'Cannot send messages to inactive match' });
+      return res.status(400).json({ message: 'Cannot send message to inactive match' });
     }
 
     // Determine receiver
@@ -36,13 +50,19 @@ export const sendMessage = async (req, res) => {
       ? match.owner2
       : match.owner1;
 
+    console.log(' Creating message:', {
+      sender: senderId,
+      receiver: receiverId,
+      match: matchId
+    });
+
     // Create message
     const message = await Message.create({
       match: matchId,
       sender: senderId,
       receiver: receiverId,
-      text: text,
-      image: image || undefined
+      text: text || '',
+      image: image || null
     });
 
     // Update match's last message
@@ -55,21 +75,26 @@ export const sendMessage = async (req, res) => {
       .populate('sender', 'fullname email profilePicture')
       .populate('receiver', 'fullname email profilePicture');
 
-    // Emit via Socket.IO to match room
-    emitNewMessageToRoom(matchId, populatedMessage);
+    console.log(' Message created:', populatedMessage._id);
 
-    // Also emit to specific receiver (fallback)
-    emitNewMessage(receiverId.toString(), populatedMessage);
+    // Emit via Socket.IO
+    if (emitNewMessageToRoom) {
+      emitNewMessageToRoom(matchId, populatedMessage);
+    }
 
     res.status(201).json(populatedMessage);
   } catch (error) {
-    console.error('Error in sendMessage:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error(' Error in sendMessage:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
 /**
- * Get all messages in a match
+ * Get all messages for a match
  * GET /api/messages/:matchId
  */
 export const getMessages = async (req, res) => {
@@ -77,7 +102,9 @@ export const getMessages = async (req, res) => {
     const { matchId } = req.params;
     const userId = req.user._id;
 
-    // Verify match
+    console.log(' Get messages request:', { matchId, userId });
+
+    // Verify match exists and user is part of it
     const match = await Match.findById(matchId);
 
     if (!match) {
@@ -86,16 +113,18 @@ export const getMessages = async (req, res) => {
 
     if (match.owner1.toString() !== userId.toString() &&
       match.owner2.toString() !== userId.toString()) {
-      return res.status(403).json({ message: 'Not authorized to view these messages' });
+      return res.status(403).json({ message: 'You are not part of this match' });
     }
 
     // Get messages
     const messages = await Message.find({ match: matchId })
       .populate('sender', 'fullname email profilePicture')
       .populate('receiver', 'fullname email profilePicture')
-      .sort({ createdAt: 1 });
+      .sort({ createdAt: 1 }); // Oldest first
 
-    // Mark as read
+    console.log(` Found ${messages.length} messages`);
+
+    // Mark messages as read
     await Message.updateMany(
       {
         match: matchId,
@@ -110,19 +139,25 @@ export const getMessages = async (req, res) => {
 
     res.status(200).json(messages);
   } catch (error) {
-    console.error('Error in getMessages:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error(' Error in getMessages:', error);
+    res.status(500).json({
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
 /**
- * Get all matches with last message (for chat list)
+ * Get all matches with messages
  * GET /api/messages/matches
  */
 export const getMatchesWithMessages = async (req, res) => {
   try {
     const userId = req.user._id;
 
+    console.log(' Get matches request for user:', userId);
+
+    // Find all active matches for this user
     const matches = await Match.find({
       $or: [{ owner1: userId }, { owner2: userId }],
       status: 'active'
@@ -131,9 +166,15 @@ export const getMatchesWithMessages = async (req, res) => {
       .populate('pet2', 'name images breed species')
       .populate('owner1', 'fullname email profilePicture')
       .populate('owner2', 'fullname email profilePicture')
-      .populate('lastMessage')
+      .populate({
+        path: 'lastMessage',
+        select: 'text image createdAt'
+      })
       .sort({ lastMessageAt: -1 });
 
+    console.log(` Found ${matches.length} matches`);
+
+    // Calculate unread count for each match
     const matchesWithUnread = await Promise.all(
       matches.map(async (match) => {
         const unreadCount = await Message.countDocuments({
@@ -151,36 +192,10 @@ export const getMatchesWithMessages = async (req, res) => {
 
     res.status(200).json(matchesWithUnread);
   } catch (error) {
-    console.error('Error in getMatchesWithMessages:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-/**
- * Delete a message
- * DELETE /api/messages/:messageId
- */
-export const deleteMessage = async (req, res) => {
-  try {
-    const { messageId } = req.params;
-    const userId = req.user._id;
-
-    const message = await Message.findById(messageId);
-
-    if (!message) {
-      return res.status(404).json({ message: 'Message not found' });
-    }
-
-    // Only sender can delete their message
-    if (message.sender.toString() !== userId.toString()) {
-      return res.status(403).json({ message: 'Not authorized to delete this message' });
-    }
-
-    await message.deleteOne();
-
-    res.status(200).json({ message: 'Message deleted successfully' });
-  } catch (error) {
-    console.error('Error in deleteMessage:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error in getMatchesWithMessages:', error);
+    res.status(500).json({
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };

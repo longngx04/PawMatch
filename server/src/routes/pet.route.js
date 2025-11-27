@@ -1,4 +1,5 @@
 import express from 'express';
+import { protectRoute } from '../middleware/auth.middleware.js';
 import {
     createPet,
     getMyPets,
@@ -8,26 +9,27 @@ import {
     getPetsToSwipe,
     swipePet,
     getMatches,
-    unmatch
+    unmatch,
+    getAllPets
 } from '../controllers/pet.controller.js';
-import { protectRoute } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-// All routes require authentication
+// Protected routes
 router.use(protectRoute);
 
-// Pet CRUD operations
-router.post('/', createPet);                    // Create a new pet
-router.get('/my-pets', getMyPets);              // Get all my pets
-router.get('/:petId', getPetById);              // Get single pet by ID
-router.put('/:petId', updatePet);               // Update pet
-router.delete('/:petId', deletePet);            // Delete pet
-// Swipe functionality
-router.get('/swipe-cards/:petId', getPetsToSwipe);  // Get pets to swipe on
-router.post('/swipe', swipePet);                     // Perform a swipe
-// Match functionality
-router.get('/matches/:petId', getMatches);      // Get all matches for a pet
-router.delete('/match/:matchId', unmatch);      // Unmatch
+// Pet CRUD
+router.post('/', createPet);
+router.get('/', getAllPets); // Get all pets with filters
+router.get('/user/pets', getMyPets); // Get my pets
+router.get('/:petId', getPetById);
+router.put('/:petId', updatePet);
+router.delete('/:petId', deletePet);
+
+// Swipe & Match
+router.get('/swipe/:petId', getPetsToSwipe);
+router.post('/swipe', swipePet);
+router.get('/matches/:petId', getMatches);
+router.delete('/match/:matchId', unmatch);
 
 export default router;
