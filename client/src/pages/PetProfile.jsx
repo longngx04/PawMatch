@@ -368,7 +368,7 @@ const PetProfile = () => {
             <div className="flex gap-4">
               <button
                 type="button"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/main')}
                 className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
               >
                 Cancel
